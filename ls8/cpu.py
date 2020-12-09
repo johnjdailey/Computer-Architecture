@@ -13,6 +13,8 @@ HLT = 0b00000001 # Halt
 LDI = 0b10000010 # Load Immediate
 PRN = 0b01000111 # Print
 MUL = 0b10100010 # Multiply
+PUSH = 0b01000101 # Push in stack
+POP = 0b01000110 # Pop in stack
 
 
 class CPU:
@@ -24,7 +26,7 @@ class CPU:
 
         self.ram = [0] * 256
 
-        # Create 8 registers
+        # Create 8 reg
 
         self.registers = [0] * 8
         self.registers[7] = 0xF4
@@ -57,28 +59,52 @@ class CPU:
 
         # Loading a program from a file
 
-        try:
-            with open(filename) as my_file:
-                for line in my_file:
-                    comment_split = line.split("#")
-                    maybe_binary_number = comment_split[0]
-        
-                    try:
-                        x = int(maybe_binary_number, 2)
-                        print("{:08b}: {:d}".format(x, x))
-                    except:
-                        print(f"failed to cast {maybe_binary_number} to an int")
-                        continue
+        # Open the file
 
-        except FileNotFoundError:
-            print("file not found...")
+        with open(filename) as my_file:
+
+            # Go through each line to parse and get the instruction
+            
+            for line in my_file:
+
+                # Try and get the instruction/operand in the line
+                
+                comment_split = line.split("#")
+                maybe_binary_number = comment_split[0]
+                try:
+                    x = int(maybe_binary_number, 2)
+                    self.ram_write(x, address)
+                    address += 1
+                except:
+                    continue
+
+#        try:
+#            with open(filename) as my_file:
+#                for line in my_file:
+#                    comment_split = line.split("#")
+#                    maybe_binary_number = comment_split[0]
+#        
+#                    try:
+#                        x = int(maybe_binary_number, 2)
+#                        print("{:08b}: {:d}".format(x, x))
+#                    except:
+#                        print(f"failed to cast {maybe_binary_number} to an int")
+#                        continue
+#
+#        except FileNotFoundError:
+#            print("file not found...")
 
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+        #if op == "ADD":
+        #    self.reg[reg_a] += self.reg[reg_b]
+
+        if op == MUL:
+            self.registers[reg_a] *= self.registers[reg_b]
+            self.pc += 3
+
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -127,16 +153,75 @@ class CPU:
     def execute_instruction(self, instruction, operand_a, operand_b):
         if instruction == HLT:
             self.halted = True
+
+            # Increment pointer counter to the next instruction
+            
             self.pc += 1
+
         elif instruction == PRN:
-            print(self.reg[operand_a])
+            print(self.registers[operand_a])
+
+            # Increment pointer counter to the next instruction
+
             self.pc += 2
+
         elif instruction == LDI:
             self.registers[operand_a] = operand_b
+
+            # Increment pointer counter to the next instruction
+
             self.pc += 3
+
+        # MUL should be in the alu
+
         elif instruction == MUL:
-            self.registers[operand_a] = self.reg[operand_a] * self.reg[operand_b]
-            self.pc += 3 
+            self.alu(instruction, operand_a, operand_b)
+            #self.registers[operand_a] *= self.registers[operand_b]
+            #self.pc += 3
+
+        elif instruction == PUSH:
+            
+            # Decrement the stack pointer
+            
+            self.registers[7] -= 1
+
+            # Get the top of the stack
+
+            SP = self.registers[7]
+
+            # Store the value in the register on top of the stack
+
+            value = self.registers[operand_a] # Push this value
+
+            # Store the value at the top of the stack
+
+            self.ram[SP] = value 
+
+            # Increment pointer counter to the next instruction
+
+            self.pc += 2
+
+        elif instruction == POP:
+
+            # Pops the value from the top of the stack and stores it in the given register
+
+            # Read the value from the top of the stack
+
+            SP = self.registers[7] # Top value in the stack
+
+            # Store the value in the given register
+
+            value = self.ram[SP] # Register to store value in
+            self.registers[operand_a] = value # Store the value in register
+
+            # Increment the stack pointer
+
+            self.registers[7] += 1
+
+            # Increment pointer counter to the next instruction
+            
+            self.pc += 2
+
         else:
             print("idk what to do.")
             pass
