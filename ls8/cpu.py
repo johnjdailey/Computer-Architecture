@@ -15,6 +15,10 @@ PRN = 0b01000111 # Print
 MUL = 0b10100010 # Multiply
 PUSH = 0b01000101 # Push in stack
 POP = 0b01000110 # Pop in stack
+CALL = 0b01010000 # Calls a subroutine (function)
+RET = 0b00010001 # Return from subroutine
+
+SP = 7 # Stack Pointer
 
 
 class CPU:
@@ -183,19 +187,11 @@ class CPU:
             
             # Decrement the stack pointer
             
-            self.registers[7] -= 1
+            self.registers[SP] -= 1
 
-            # Get the top of the stack
+            # Store the operand in the stack
 
-            SP = self.registers[7]
-
-            # Store the value in the register on top of the stack
-
-            value = self.registers[operand_a] # Push this value
-
-            # Store the value at the top of the stack
-
-            self.ram[SP] = value 
+            self.ram_write(self.registers[operand_a], self.registers[SP])
 
             # Increment pointer counter to the next instruction
 
@@ -207,20 +203,34 @@ class CPU:
 
             # Read the value from the top of the stack
 
-            SP = self.registers[7] # Top value in the stack
-
-            # Store the value in the given register
-
-            value = self.ram[SP] # Register to store value in
-            self.registers[operand_a] = value # Store the value in register
+            self.registers[operand_a] = self.ram_read(self.registers[SP])
 
             # Increment the stack pointer
 
-            self.registers[7] += 1
+            self.registers[SP] += 1
 
             # Increment pointer counter to the next instruction
             
             self.pc += 2
+
+        elif instruction == CALL:
+
+            # Push address of next instruction to stack
+    
+            self.registers[SP] -= 1
+            self.ram_write(
+                self.pc+2,
+                self.registers[SP]
+            )
+
+            # Jump to the address at the given register
+
+            self.pc = self.registers[self.ram_read(self.pc+1)]
+       
+        elif instruction == RET:
+
+            self.pc = self.ram_read(self.registers[SP])
+            self.registers[SP] += 1
 
         else:
             print("idk what to do.")
