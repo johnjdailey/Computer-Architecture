@@ -110,6 +110,7 @@ class CPU:
             self.pc += 3
 
         #elif op == "SUB": etc
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -225,7 +226,7 @@ class CPU:
 
             # Jump to the address at the given register
 
-            self.pc = self.registers[self.ram_read(self.pc+1)]
+            self.pc = self.registers[operand_a]
        
         elif instruction == RET:
 
